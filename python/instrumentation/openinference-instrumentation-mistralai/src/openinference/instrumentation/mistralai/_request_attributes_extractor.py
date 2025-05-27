@@ -40,6 +40,14 @@ class _RequestAttributesExtractor:
             return
         yield from _get_attributes_from_chat_completion_create_param(request_parameters)
 
+    def get_attributes_from_ocr_request(
+        self,
+        request_parameters: Mapping[str, Any],
+    ) -> Iterator[Tuple[str, AttributeValue]]:
+        if not isinstance(request_parameters, Mapping):
+            return
+        yield from _get_attributes_from_ocr_process_param(request_parameters)
+
 
 def _get_attributes_from_chat_completion_create_param(
     params: Mapping[str, Any],
@@ -106,3 +114,44 @@ def _get_attributes_from_message_param(
                         f"{ToolCallAttributes.TOOL_CALL_FUNCTION_ARGUMENTS_JSON}",
                         arguments,
                     )
+
+
+def _get_attributes_from_ocr_process_param(
+    params: Mapping[str, Any],
+) -> Iterator[Tuple[str, AttributeValue]]:
+    if not isinstance(params, Mapping):
+        return
+
+    # Extract model information
+    model = params.get("model")
+    if model:
+        yield SpanAttributes.LLM_MODEL_NAME, model
+
+    # Extract basic OCR parameters
+    invocation_params = dict(params)
+    # Remove document from params as it might contain binary data
+    invocation_params.pop("document", None)
+    yield SpanAttributes.LLM_INVOCATION_PARAMETERS, safe_json_dumps(invocation_params)
+
+    # Extract document information (if available)
+    document = params.get("document")
+    if document:
+        # If document has a file_path, extract it
+        if hasattr(document, "get"):
+            file_path = document.get("file_path")
+            if file_path:
+                yield "ocr.document.file_path", file_path
+
+            # If document has a url, extract it
+            url = document.get("url")
+            if url:
+                yield "ocr.document.url", url
+
+    # Extract annotation format information
+    bbox_format = params.get("bbox_annotation_format")
+    if bbox_format:
+        yield "ocr.bbox_annotation_format", safe_json_dumps(bbox_format)
+
+    doc_format = params.get("document_annotation_format")
+    if doc_format:
+        yield "ocr.document_annotation_format", safe_json_dumps(doc_format)

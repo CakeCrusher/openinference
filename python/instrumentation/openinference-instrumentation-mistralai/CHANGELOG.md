@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/Arize-ai/openinference/compare/python-openinference-instrumentation-mistralai-v1.3.3...python-openinference-instrumentation-mistralai-v1.4.0) (2025-05-28)
+
+
+### Features
+
+* add support for Mistral OCR API ([#1580](https://github.com/Arize-ai/openinference/issues/1580)) ([e220d5c](https://github.com/Arize-ai/openinference/commit/e220d5c587f67bbdb5a349b45f90be32f8d9b2a5))
+
 ## [1.3.3](https://github.com/Arize-ai/openinference/compare/python-openinference-instrumentation-mistralai-v1.3.2...python-openinference-instrumentation-mistralai-v1.3.3) (2025-04-28)
 
 

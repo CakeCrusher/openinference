@@ -18,8 +18,12 @@ from openinference.semconv.trace import (
 
 if TYPE_CHECKING:
     from mistralai.models import ChatCompletionResponse
+    from mistralai.models.ocrresponse import OCRResponse
 
-__all__ = ("_ResponseAttributesExtractor",)
+__all__ = (
+    "_ResponseAttributesExtractor",
+    "_OCRResponseAttributesExtractor",
+)
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -126,3 +130,44 @@ def _get_attribute_or_value(
     ):
         return value
     return None
+
+
+class _OCRResponseAttributesExtractor:
+    def get_attributes_from_response(
+        self,
+        response: Any,
+        request_parameters: Mapping[str, Any],
+    ) -> Iterator[Tuple[str, AttributeValue]]:
+        yield from _get_attributes_from_ocr_response(response)
+
+
+def _get_attributes_from_ocr_response(
+    response: "OCRResponse",
+) -> Iterator[Tuple[str, AttributeValue]]:
+    if model := getattr(response, "model", None):
+        yield SpanAttributes.LLM_MODEL_NAME, model
+
+    # Extract usage information
+    if usage_info := getattr(response, "usage_info", None):
+        if total_tokens := _get_attribute_or_value(usage_info, "total_tokens"):
+            yield SpanAttributes.LLM_TOKEN_COUNT_TOTAL, total_tokens
+        if prompt_tokens := _get_attribute_or_value(usage_info, "prompt_tokens"):
+            yield SpanAttributes.LLM_TOKEN_COUNT_PROMPT, prompt_tokens
+
+    # Extract document annotation if available
+    if doc_annotation := getattr(response, "document_annotation", None):
+        yield "ocr.document_annotation", doc_annotation
+
+    # Extract pages information
+    if (pages := getattr(response, "pages", None)) and isinstance(pages, Iterable):
+        for idx, page in enumerate(pages):
+            if page_index := _get_attribute_or_value(page, "index"):
+                yield f"ocr.pages.{idx}.index", page_index
+            if markdown := _get_attribute_or_value(page, "markdown"):
+                yield f"ocr.pages.{idx}.markdown", markdown
+            if dimensions := _get_attribute_or_value(page, "dimensions"):
+                if width := _get_attribute_or_value(dimensions, "width"):
+                    yield f"ocr.pages.{idx}.dimensions.width", width
+                if height := _get_attribute_or_value(dimensions, "height"):
+                    yield f"ocr.pages.{idx}.dimensions.height", height
+            # Don't extract images as they can be numerous and contribute to attribute limits
