@@ -76,8 +76,56 @@ Now simply run the python file and observe the traces in Phoenix.
 python your_file.py
 ```
 
+## Supported Features
+
+The instrumentation supports the following Mistral AI features:
+
+- Chat Completions (synchronous and asynchronous)
+- Streaming Chat Completions (synchronous and asynchronous)
+- Agent API (synchronous and asynchronous)
+- OCR Document Processing (synchronous and asynchronous)
+
+### OCR Support
+
+The instrumentation now supports Mistral AI's OCR (Optical Character Recognition) capabilities, allowing you to trace and monitor document processing tasks. Here's a simple example:
+
+```python
+from mistralai import Mistral
+from mistralai.models.responseformat import ResponseFormat
+from openinference.instrumentation.mistralai import MistralAIInstrumentor
+
+# Setup instrumentation (tracer setup omitted for brevity)
+MistralAIInstrumentor().instrument()
+
+client = Mistral(api_key="your-api-key")
+
+# Process a document with OCR
+document = {"url": "https://example.com/sample.pdf"}
+
+response = client.ocr.process(
+    model="mistral-large-latest",
+    document=document,
+    pages=[0, 1],  # Process first two pages
+    bbox_annotation_format=ResponseFormat(
+        type="json_schema", 
+        schema={
+            "type": "object",
+            "properties": {
+                "content": {"type": "string"},
+                "confidence": {"type": "number"},
+            }
+        }
+    )
+)
+
+print(f"Pages processed: {len(response.pages)}")
+```
+
+For more examples, see the [examples directory](./examples/) in the repository.
+
 ## More Info
 
 * [More info on OpenInference and Phoenix](https://docs.arize.com/phoenix)
 * [How to customize spans to track sessions, metadata, etc.](https://github.com/Arize-ai/openinference/tree/main/python/openinference-instrumentation#customizing-spans)
 * [How to account for private information and span payload customization](https://github.com/Arize-ai/openinference/tree/main/python/openinference-instrumentation#tracing-configuration)
+* [Mistral AI OCR Documentation](https://docs.mistral.ai/capabilities/OCR/basic_ocr/)
